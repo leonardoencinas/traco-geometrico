@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Traço Geométrico</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101a46">
+    <link rel="icon" type="image/svg+xml" href="images/icon-v2.svg">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Carrega a biblioteca do Phaser via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+</head>
+
+<body>
+    <main id="game-shell" aria-label="Traço Geométrico">
+        <div id="game-canvas"></div>
+        <section id="menu" aria-labelledby="game-title">
+            <header class="menu-header"><span class="brand-mark"></span><span>UM SALTO DE CADA VEZ.</span></header>
+            <div class="menu-content">
+                <h1 id="game-title">TRAÇO<span>GEOMÉTRICO</span></h1>
+                <p class="tagline">O próximo salto é seu.</p>
+                <div class="play-orbit"><button id="play-button" type="button" aria-label="Jogar" disabled><span
+                            class="play-icon" aria-hidden="true"></span></button></div>
+                <p class="play-label">JOGAR</p>
+                <p class="keyboard-hint" id="menu-status" role="status">Carregando o jogo…</p>
+            </div>
+            <footer class="menu-footer"><span>PROJETO POO · FEITO EM EQUIPE</span><span>01 / INÍCIO</span></footer>
+        </section>
+        <button id="back-button" type="button" hidden>← Menu <span>ESC</span></button>
+    </main>
+    <noscript>Ative o JavaScript no navegador para jogar.</noscript>
+    <script src="main.js"></script>
+</body>
+
+</html>
