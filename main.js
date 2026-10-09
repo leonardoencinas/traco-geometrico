@@ -58,6 +58,9 @@ class GeometricScene extends Phaser.Scene {
         // Faixa e linha brilhante que formam a estética do chão no fundo
         this.add.rectangle(640, 690, 1280, 60, 0x0a1233);
         this.add.rectangle(640, 661, 1280, 2, 0x68e5ee, 0.8);
+
+        this.add.rectangle(640, 50, 1280, 100, 0x0a1233);
+        this.add.rectangle(640, 100, 1280, 2, 0x68e5ee, 0.8);
     }
 }
 
@@ -176,55 +179,84 @@ class MenuScene extends GeometricScene {
         // Acessa e prepara os elementos de UI do DOM (HTML)
         const menu = document.getElementById('menu');
         const play = document.getElementById('play-button');
+        const levelSelect = document.getElementById('level-select');
+        const levelButtons = document.querySelectorAll('.level-btn');
+        const backBtn = document.getElementById('back-button');
 
+        // Reseta o estado inicial (caso o jogador tenha morrido e voltado pro menu)
         menu.hidden = false;
         menu.classList.remove('is-leaving');
         menu.inert = false;
         play.disabled = false;
+        levelSelect.hidden = true;
+        levelSelect.style.opacity = "1";
+        backBtn.hidden = true;
         document.getElementById('menu-status').innerHTML = 'ou pressione <kbd>Enter</kbd>';
 
-        // Função responsável por iniciar a transição de saída do menu para a cena do jogo.
-        const start = () => {
+        // Botão "Jogar" abre a seleção de fases
+        const OpenLevelSelect = () => {
+            menu.hidden = true;
+            levelSelect.hidden = false;
+            backBtn.hidden = false;
+        }
+
+        // Botão de voltar (da seleção de fases para o menu principal)
+        const CloseLevelSelect = () => {
+            if (this.starting) return;
+            levelSelect.hidden = true;
+            backBtn.hidden = true;
+            menu.hidden = false;
+        }
+
+        // Inicia o jogo ao clicar em uma fase
+        const StartLevel = (event) => {
             if (this.starting) return;
             this.starting = true;
 
-            // Desativa interações no DOM durante a transição
-            play.disabled = true;
-            menu.inert = true;
-            menu.classList.add('is-leaving');
+            const heroName = event.target.getAttribute('data-level');
+            console.log("Iniciando fase do: " + heroName);
+
+            // Animação de saída da tela de seleção
+            levelSelect.style.opacity = "0";
+            backBtn.hidden = true;
 
             const duration = reducedMotion.matches ? 0 : 480;
 
-            // Executa efeito de Zoom e Fade Out na câmera (se animação permitida)
             if (duration) {
                 this.tweens.add({
-                targets: this.cameras.main,
-                zoom: 1.08,
-                duration,
-                ease: 'Cubic.In'
+                    targets: this.cameras.main,
+                    zoom: 1.08,
+                    duration,
+                    ease: 'Cubic.In'
                 });
-
                 this.cameras.main.fadeOut(duration, 16, 26, 70);
             }
 
-            // Transita para a cena 'Game' após a duração da animação
+            // Transita para a cena "Game" enviando o nome do herói
             this.time.delayedCall(duration, () => {
-                menu.hidden = true;
-                this.scene.start('Game');
+                levelSelect.hidden = true;
+                this.scene.start('Game', { hero: heroName } );
             });
         };
 
-        // Listeners de evento de entrada (Clique ou tecla Enter)
-        play.addEventListener('click', start);
-        this.input.keyboard.on('keydown-ENTER', start);
+        // Listeners de eventos para os botões do menu e seleção de fases
+        play.addEventListener('click', OpenLevelSelect);
+        backBtn.addEventListener('click', CloseLevelSelect);
 
-        // Limpeza de eventos do DOM ao encerrar/mudar esta cena
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            play.removeEventListener('click', start);
-            this.input.keyboard.off('keydown-ENTER', start);
+        levelButtons.forEach(btn => {
+            btn.addEventListener('click', StartLevel);
         });
 
-        // Coloca o foco acessível no botão "Play"
+        // Limpeza de listeners ao encerrar/mudar esta cena
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            play.removeEventListener('click', OpenLevelSelect);
+            backBtn.removeEventListener('click', CloseLevelSelect);
+
+            levelButtons.forEach(btn => {
+                btn.removeEventListener('click', StartLevel);
+            });
+        });
+
         play.focus({ preventScroll: true });
     }
 }
@@ -250,11 +282,14 @@ class DemoGame extends GeometricScene {
         this.createBackdrop();
         this.cameras.main.fadeIn(reducedMotion.matches ? 0 : 380, 16, 26, 70);
 
-        // ---------- Chão ----------
+       // ---------- Chão e Teto ----------
 
-        // Criando chão estático invisível para física de colisão
+        // Criando chão e teto estático invisível para física de colisão
         const ground = this.add.rectangle(640, 690, 1280, 60, 0x0a1233, 0);
         this.physics.add.existing(ground, true);
+
+        const teto = this.add.rectangle(640, 100, 1280, 2, 0x68e5ee, 0.8);
+        this.physics.add.existing(teto, true);
 
         // Marcas no chão que andam pra esquerda (dão a sensação de corrida)
         this.marcasChao = [];
@@ -266,11 +301,13 @@ class DemoGame extends GeometricScene {
 
         // ---------- Jogador ----------
 
-        // Cria o jogador usando a classe Player, já em cima do chão
+        // Criando objeto do jogador (quadrado verde) com física dinâmica
         this.player = new Player(this, MOVIMENTO.xFixo, MOVIMENTO.chaoY - 20);
-
-        // Adiciona colisão entre o jogador e o chão
         this.physics.add.collider(this.player, ground);
+
+        // Adiciona colisão entre o jogador e o chão e teto
+        this.physics.add.collider(this.player, ground);
+        this.physics.add.collider(this.player, teto);
 
         // ---------- Obstáculos de TESTE ----------
         // (servem só pra ver a movimentação; quem faz a fase pode trocar)
@@ -292,6 +329,7 @@ class DemoGame extends GeometricScene {
 
         // ---------- Textos ----------
 
+        // Textos de Instrução
         this.add
             .text(640, 60, `TENTATIVA ${this.tentativa}`, {
             fontFamily: 'Arial, sans-serif',
@@ -485,6 +523,7 @@ const config = {
     },
     scene: [MenuScene, DemoGame]
 };
+
 
 // Instancia e inicia o motor do Phaser
 new Phaser.Game(config);
