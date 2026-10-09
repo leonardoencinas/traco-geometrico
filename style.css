@@ -252,9 +252,9 @@ kbd {
 
 .level-btn{
     background: #192a6b;
-    border: 2px solid #3657bc;
+    border: 2px solid #68e5ee;
     border-radius: 8px;
-    color: #eef5ff;
+    color: #68e5ee;
     padding: 1.5cqw 2.5cqw;
     font-size: clamp(12px, 1.8cqw, 24px);
     font-weight: bold;
@@ -265,8 +265,8 @@ kbd {
 
 .level-btn:hover{
     background: #2a4bb0;
-    border-color: #668eff;
-    transform: translateY(-2px);
+    border-color: #68e5ee;
+    transform: translateY(-3px);
     box-shadow: 0 6px 0 #0a1233;
 }
 
