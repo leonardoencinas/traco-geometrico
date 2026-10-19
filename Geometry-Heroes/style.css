@@ -1,0 +1,1210 @@
+/* ================================================================
+   VARIÁVEIS E BASE
+   ================================================================ */
+
+:root {
+    color-scheme: dark;                          /* Avisa o navegador que o site é escuro (barras de rolagem e inputs escuros) */
+    font-family: Arial, Helvetica, sans-serif;   /* Fonte padrão de todo o site */
+    color: #eef5ff;                              /* Cor padrão do texto (branco azulado) */
+    background: #080d21;                         /* Cor de fundo atrás do jogo */
+}
+
+* {
+    box-sizing: border-box;                      /* Padding e borda contam dentro da largura (evita estouro) */
+}
+
+html, body {
+    height: 100%;                                /* Página ocupa a tela toda */
+    overflow: hidden;                            /* Impede rolagem da página enquanto joga */
+}
+
+body {
+    margin: 0;                                   /* Remove a margem padrão do navegador */
+    min-height: 100svh;                          /* Ocupa pelo menos a altura visível da tela (svh = considera a barra do celular) */
+    display: grid;                               /* Usa grid pra centralizar o jogo */
+    place-items: center;                         /* Centraliza na horizontal e na vertical */
+    background: #080d21;                         /* Fundo explícito no body */
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); /* Respeita o "notch" dos celulares */
+    -webkit-user-select: none;                   /* Impede selecionar texto ao tocar rápido (Safari) */
+    user-select: none;                           /* Impede selecionar texto ao tocar rápido */
+}
+
+button {
+    font: inherit;                               /* Botões usam a mesma fonte do resto */
+    cursor: pointer;                             /* Mãozinha ao passar o mouse */
+    -webkit-tap-highlight-color: transparent;    /* Tira o "flash" azul ao tocar no celular */
+    touch-action: manipulation;                  /* Tira o atraso de toque duplo nos botões */
+}
+
+[hidden] {
+    display: none !important;                    /* Garante que elementos com hidden sumam mesmo */
+}
+
+/* ================================================================
+   ÁREA DO JOGO
+   ================================================================ */
+
+#game-shell {
+    position: relative;                          /* Referência pros elementos absolutos de dentro (menu, botão voltar) */
+    width: min(100vw, 1600px, calc(100svh * 16 / 9)); /* Cabe na largura E na altura da tela, sem cortar */
+    aspect-ratio: 16 / 9;                        /* Mantém o formato widescreen */
+    max-width: 100%;                             /* Nunca passa da largura disponível */
+    overflow: hidden;                            /* Esconde o que passar da borda */
+    background: #101a46;                         /* Cor de fundo do jogo (igual à câmera do Phaser) */
+    container-type: inline-size;                 /* Permite usar "cqw" (1% da largura do jogo) nas medidas de dentro */
+}
+
+#game-canvas {
+    position: absolute;                          /* Fica por cima de tudo dentro do shell */
+    inset: 0;                                    /* Encosta nas 4 bordas */
+}
+
+canvas {
+    display: block;                              /* Tira o espacinho que aparece embaixo de elementos inline */
+    touch-action: none;                          /* Tocar no jogo não dá zoom nem rola a página */
+    -webkit-touch-callout: none;                 /* Segurar o dedo não abre o menu do iPhone */
+}
+
+canvas:focus-visible {
+    outline: 2px solid #b7f65b;                  /* Contorno verde quando o canvas recebe foco pelo teclado */
+    outline-offset: -2px;                        /* Desenha o contorno pra dentro */
+}
+
+/* ================================================================
+   MENU PRINCIPAL
+   ================================================================ */
+
+#menu {
+    position: absolute; inset: 0;                /* Cobre a área do jogo inteira */
+    display: flex; flex-direction: column;       /* Cabeçalho, conteúdo e rodapé empilhados */
+    padding: 3.2% 4%;                            /* Espaço interno proporcional */
+    background: radial-gradient(ellipse at 50% 40%, #395dc13b, transparent 65%); /* Brilho azul no centro */
+    transition: opacity 480ms ease, transform 480ms cubic-bezier(.55,0,1,.45); /* Animação de saída */
+}
+
+#menu.is-leaving {
+    opacity: 0;                                  /* Some ao sair */
+    transform: scale(1.16);                      /* Dá um zoom ao sair */
+    pointer-events: none;                        /* Não aceita cliques durante a saída */
+}
+
+.menu-header, .menu-footer {
+    display: flex;                               /* Itens lado a lado */
+    justify-content: space-between;              /* Um na esquerda, outro na direita */
+    align-items: center;                         /* Alinhados no meio verticalmente */
+    gap: 1em;                                    /* Espaço mínimo entre os textos em telas estreitas */
+    color: #95a9d5;                              /* Azul acinzentado */
+    font-size: clamp(8px, 1cqw, 14px);           /* Tamanho que acompanha a largura do jogo, com mínimo e máximo */
+    letter-spacing: .18em;                       /* Letras espaçadas */
+    font-weight: 700;                            /* Negrito */
+}
+
+.brand-mark {
+    font-size: clamp(14px, 2cqw, 28px);          /* Tamanho proporcional */
+    color: #b7f65b;                              /* Verde do jogador */
+    letter-spacing: -.05em;                      /* Letras mais juntas */
+}
+
+.menu-content {
+    flex: 1;                                     /* Ocupa todo o espaço entre cabeçalho e rodapé */
+    display: flex;                               /* Flex pra centralizar */
+    flex-direction: column;                      /* Itens um embaixo do outro */
+    justify-content: center;                     /* Centraliza na vertical */
+    align-items: center;                         /* Centraliza na horizontal */
+    text-align: center;                          /* Texto centralizado */
+}
+
+.eyebrow {
+    margin: 0 0 1.5cqw;                          /* Espaço só embaixo */
+    color: #7fe8ee;                              /* Ciano */
+    font-size: clamp(8px, 1cqw, 14px);           /* Tamanho proporcional */
+    font-weight: 700;                            /* Negrito */
+    letter-spacing: .4em;                        /* Bem espaçado */
+}
+
+h1 {
+    margin: 0;                                   /* Sem margem padrão */
+    font-size: clamp(24px, 6cqw, 90px);          /* Título grande e proporcional */
+    line-height: .98; font-weight: 900;          /* Linhas coladas e peso máximo */
+    letter-spacing: -.055em;                     /* Letras apertadas */
+    transform: skew(-5deg);                      /* Inclinação de "velocidade" */
+    text-shadow: 0 .055em 0 #4c70b4, 0 .11em 0 #060e2b; /* Sombra em camadas (efeito 3D) */
+}
+
+h1 span {
+    display: block;                              /* "GEOMÉTRICO" vai pra linha de baixo */
+    color: #b7f65b;                              /* Verde */
+    font-size: .87em;                            /* Um pouco menor que a primeira linha do título */
+    text-shadow: 0 .055em 0 #55883b, 0 .11em 0 #060e2b; /* Sombra 3D verde */
+}
+
+.tagline {
+    margin: 1.9cqw 0 2.2cqw;                     /* Espaço em cima e embaixo */
+    font-size: clamp(10px, 1.3cqw, 19px);        /* Tamanho proporcional */
+    color: #a9bde2;                              /* Azul claro */
+}
+
+.play-orbit {
+    display: grid;                               /* Grid pra centralizar o botão */
+    place-items: center;                         /* Centraliza */
+    padding: .9cqw;                              /* Espaço entre o botão e o anel */
+    border: 1px solid #b7f65b33;                 /* Anel verde transparente */
+    border-radius: 50%;                          /* Redondo */
+    position: relative;                          /* Referência pro ::before */
+}
+
+.play-orbit::before {
+    content: '';                                 /* Pseudo-elemento vazio (só o anel) */
+    position: absolute;                          /* Posicionado em relação ao .play-orbit */
+    inset: -.65cqw;                              /* Um pouco maior que o anel de dentro */
+    border: 1px solid #b7f65b17;                 /* Anel ainda mais transparente */
+    border-radius: 50%;                          /* Redondo */
+    animation: pulse 2.6s ease-in-out infinite;  /* Pulsa sem parar */
+    pointer-events: none;                        /* Não bloqueia cliques */
+}
+
+#play-button {
+    display: grid;                               /* Grid pra centralizar o ícone */
+    place-items: center;                         /* Centraliza */
+    width: clamp(56px, 8cqw, 120px);             /* Tamanho mínimo bom pro dedo */
+    aspect-ratio: 1;                             /* Quadrado (vira círculo com o radius) */
+    border-radius: 50%;                          /* Redondo */
+    border: 3px solid #e5ffb5;                   /* Borda verde clara */
+    background: linear-gradient(145deg, #d6ff82, #96dc3a); /* Gradiente verde */
+    box-shadow: 0 .5cqw 0 #467523, 0 0 3cqw #b7f65b28;     /* Sombra sólida embaixo + brilho */
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease; /* Animações suaves */
+}
+
+@media (hover: hover) {                          /* Hover só em aparelhos com mouse (no celular o hover fica "preso") */
+    #play-button:hover:not(:disabled) {
+        transform: translateY(-3px) scale(1.07); /* Sobe e cresce um pouco */
+        filter: brightness(1.08);                /* Fica mais claro */
+        box-shadow: 0 .7cqw 0 #467523, 0 0 4cqw #b7f65b55; /* Sombra e brilho maiores */
+    }
+
+    #back-button:hover {
+        background: #28427c;                     /* Fundo mais claro no hover */
+    }
+}
+
+#play-button:active:not(:disabled) {
+    transform: translateY(3px) scale(.97);       /* Afunda ao clicar */
+    box-shadow: 0 .15cqw 0 #467523;              /* Sombra diminui (parece apertado) */
+}
+
+#play-button:focus-visible, #back-button:focus-visible {
+    outline: 3px solid white;                    /* Contorno branco no foco do teclado */
+    outline-offset: 6px;                         /* Afastado do botão */
+}
+
+#play-button:disabled {
+    cursor: default;                             /* Sem mãozinha enquanto carrega */
+}
+
+.play-icon {
+    width: 0;                                    /* Triângulo feito com bordas: largura zero */
+    height: 0;                                   /* Altura zero */
+    margin-left: .6cqw;                          /* Empurra pra direita (centro visual do "play") */
+    border-top: 1.5cqw solid transparent;        /* Borda de cima invisível */
+    border-bottom: 1.5cqw solid transparent;     /* Borda de baixo invisível */
+    border-left: 2.3cqw solid #193d2a;           /* Borda da esquerda = o triângulo */
+    filter: drop-shadow(0 2px 0 #ffffff55);      /* Brilhinho embaixo */
+}
+
+.play-label {
+    margin: 1.4cqw 0 .6cqw;                      /* Espaço em cima e embaixo */
+    font-size: clamp(10px, 1.3cqw, 18px);        /* Tamanho proporcional */
+    font-weight: 800;                            /* Bem negrito */
+    letter-spacing: .25em;                       /* Espaçado */
+}
+
+.keyboard-hint {
+    margin: 0;                                   /* Sem margem */
+    color: #90a4ce;                              /* Azul acinzentado */
+    font-size: clamp(8px, .95cqw, 14px);         /* Tamanho proporcional */
+}
+
+kbd {
+    font: inherit;                               /* Mesma fonte do texto */
+    padding: .15em .4em;                         /* Espaço dentro da "tecla" */
+    border: 1px solid #7890bf66;                 /* Borda da "tecla" */
+    border-radius: 4px;                          /* Cantos arredondados */
+}
+
+.menu-footer {
+    font-size: clamp(7px, .85cqw, 12px);         /* Rodapé um pouco menor */
+    letter-spacing: .1em;                        /* Menos espaçado que o cabeçalho */
+}
+
+/* ================================================================
+   BOTÃO DE VOLTAR (aparece durante a partida)
+   ================================================================ */
+
+#back-button {
+    position: absolute;                          /* Fica por cima do jogo */
+    top: 4%; left: 3%;                           /* Canto superior esquerdo */
+    min-height: 44px;                            /* Altura mínima boa pro dedo */
+    padding: .7em 1em;                           /* Espaço interno */
+    border: 1px solid #6f8ac366;                 /* Borda azul transparente */
+    border-radius: 8px;                          /* Cantos arredondados */
+    color: #eaf3ff;                              /* Texto claro */
+    background: #101a46cc;                       /* Fundo azul meio transparente */
+    font-size: clamp(11px, 1.2cqw, 18px);        /* Tamanho proporcional, com mínimo legível */
+}
+
+#back-button span {
+    margin-left: 1em;                            /* Afasta o "ESC" da seta */
+    color: #8ca4d4;                              /* Mais apagado */
+    font-size: .7em;                             /* Menor */
+}
+
+/* ================================================================
+   TELA DE SELEÇÃO DE FASES
+   ================================================================ */
+
+#level-select {
+    position: absolute;                          /* Fica por cima do jogo */
+    inset: 0;                                    /* Ocupa a área toda */
+    display: flex;                               /* Flex pra organizar título e botões */
+    flex-direction: column;                      /* Um embaixo do outro */
+    justify-content: center;                     /* Centraliza na vertical */
+    align-items: center;                         /* Centraliza na horizontal */
+    padding: 4%;                                 /* Espaço nas bordas */
+    background: transparent;                     /* Deixa ver o fundo do Phaser */
+    transition: opacity 400ms ease;              /* Some suavemente ao começar a fase */
+}
+
+.level-heading {
+    margin: 0 0 2.5cqw;                          /* Espaço só embaixo (proporcional ao jogo) */
+    color: #b7f65b;                              /* Verde do jogador */
+    font-size: clamp(18px, 4cqw, 48px);          /* Tamanho proporcional */
+    letter-spacing: .2em;                        /* Letras espaçadas */
+    text-align: center;                          /* Centralizado mesmo quando quebra linha */
+    text-shadow: 0 4px 0 #060e2b;                /* Sombra sólida embaixo */
+}
+
+.level-grid {
+    display: flex;                               /* Botões lado a lado */
+    flex-wrap: wrap;                             /* Quebram linha se não couberem */
+    gap: 1.5cqw;                                 /* Espaço entre os botões */
+    justify-content: center;                     /* Centralizados */
+    max-width: 90%;                              /* Não encostam nas bordas */
+}
+
+.level-btn {
+    --c1: #192a6b;                               /* Cor principal do herói (cada botão troca abaixo) */
+    --c2: #0a1233;                               /* Cor secundária (fundo do degradê) */
+    --brilho: #668eff;                           /* Cor da borda e do brilho */
+    display: flex;                               /* Flex pra empilhar nome e descrição */
+    flex-direction: column;                      /* Nome em cima, habilidade embaixo */
+    align-items: flex-start;                     /* Alinhados à esquerda (cartão) */
+    gap: .35em;                                  /* Espaço entre nome e habilidade */
+    width: 15em;                                 /* Todos os cartões do mesmo tamanho */
+    min-height: 44px;                            /* Altura mínima boa pro dedo */
+    background: linear-gradient(135deg, var(--c1), var(--c2)); /* Degradê nas cores do herói */
+    border: 2px solid var(--brilho);             /* Borda na cor do herói */
+    border-left-width: 8px;                      /* Faixa grossa à esquerda (identidade do herói) */
+    border-radius: 10px;                         /* Cantos arredondados */
+    color: #ffffff;                              /* Texto claro */
+    padding: 1.2cqw 1.6cqw;                      /* Espaço interno proporcional */
+    font-size: clamp(12px, 1.5cqw, 21px);        /* Tamanho proporcional */
+    font-weight: bold;                           /* Negrito */
+    text-align: left;                            /* Texto à esquerda */
+    text-transform: uppercase;                   /* Tudo maiúsculo */
+    text-shadow: 0 2px 0 #00000088;              /* Sombra no texto (legível em qualquer cor) */
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; /* Animações suaves */
+    box-shadow: 0 4px 0 #00000066;               /* Sombra sólida embaixo */
+}
+
+.level-btn small {
+    color: #ffffffcc;                            /* Descrição um pouco apagada */
+    font-size: .62em;                            /* Menor que o nome */
+    font-weight: normal;                         /* Sem negrito */
+    text-transform: none;                        /* Escrita normal */
+}
+
+/* Cores de cada herói (cartão) */
+.level-btn[data-level="Homem-Aranha"]   { --c1: #b3122e; --c2: #1f3a93; --brilho: #ff5a6e; } /* Vermelho e azul */
+.level-btn[data-level="Homem de Ferro"] { --c1: #8f1219; --c2: #b8860b; --brilho: #ffc23d; } /* Vermelho e dourado */
+.level-btn[data-level="Hulk"]           { --c1: #2f7d1f; --c2: #14310e; --brilho: #6fdc4a; } /* Verde */
+.level-btn[data-level="Gaviao"]         { --c1: #4b2a7a; --c2: #15101f; --brilho: #a77bff; } /* Roxo tático e preto */
+.level-btn[data-level="DrEstranho"]     { --c1: #1d2a6b; --c2: #6b3a0a; --brilho: #3dff8a; } /* Azul místico, laranja e verde do tempo */
+.level-btn[data-level="Wanda"]          { --c1: #4a0716; --c2: #0d0205; --brilho: #ff2a4d; } /* Vermelho escuro e preto */
+
+@media (hover: hover) {                          /* Hover só em aparelhos com mouse */
+    .level-btn:hover {
+        transform: translateY(-3px) scale(1.03); /* Sobe e cresce um pouco (selecionado) */
+        filter: brightness(1.15);                /* Fica mais claro */
+        box-shadow: 0 7px 0 #00000066, 0 0 22px var(--brilho); /* Brilho na cor do herói */
+    }
+}
+
+.level-btn:focus-visible {
+    transform: translateY(-3px) scale(1.03);     /* Mesmo destaque do hover pra quem usa teclado */
+    box-shadow: 0 7px 0 #00000066, 0 0 22px var(--brilho); /* Brilho na cor do herói */
+}
+
+.level-btn:active {
+    transform: translateY(2px);                  /* Afunda ao clicar */
+    box-shadow: 0 2px 0 #0a1233;                 /* Sombra menor */
+}
+
+.level-btn:focus-visible, #ability-button:focus-visible {
+    outline: 3px solid white;                    /* Contorno branco no foco do teclado */
+    outline-offset: 4px;                         /* Afastado do botão */
+}
+
+/* ================================================================
+   BOTÃO DE HABILIDADE (aparece durante a partida)
+   ================================================================ */
+
+#ability-button {
+    position: absolute;                          /* Fica por cima do jogo */
+    right: 3%; bottom: 14%;                      /* Canto inferior direito, acima do chão */
+    min-height: 44px;                            /* Altura mínima boa pro dedo */
+    padding: .7em 1.2em;                         /* Espaço interno */
+    border: 2px solid var(--cor-hab, #b7f65b);   /* Borda na cor da habilidade da fase (verde se não tiver) */
+    border-radius: 8px;                          /* Cantos arredondados */
+    color: #120a14;                              /* Texto escuro (legível em qualquer cor de fundo) */
+    background: var(--cor-hab, #b7f65b);         /* Fundo na cor da habilidade da fase */
+    font-size: clamp(11px, 1.2cqw, 18px);        /* Tamanho proporcional */
+    font-weight: 800;                            /* Bem negrito */
+    letter-spacing: .1em;                        /* Um pouco espaçado */
+}
+
+#ability-button.recarregando {
+    opacity: .45;                                /* Fica apagado enquanto recarrega */
+}
+
+#ability-button span {
+    margin-left: .8em;                           /* Afasta a tecla do texto */
+    font-size: .75em;                            /* Menor */
+    opacity: .7;                                 /* Mais apagado */
+}
+
+/* ================================================================
+   BOTÕES DO MODO PRÁTICA (diamante verde)
+   ================================================================ */
+.botao-pratica {
+    position: absolute;                          /* Fica por cima do jogo */
+    bottom: 14%;                                 /* Mesma altura do botão de habilidade */
+    min-height: 44px;                            /* Altura mínima boa pro dedo */
+    padding: .7em 1.1em;                         /* Espaço interno */
+    border: 2px solid #3dff8a;                   /* Borda verde (cor do diamante) */
+    border-radius: 8px;                          /* Cantos arredondados */
+    color: #eafff1;                              /* Texto claro */
+    background: #0b2a1acc;                       /* Fundo verde-escuro meio transparente */
+    font-size: clamp(11px, 1.1cqw, 16px);        /* Tamanho proporcional */
+    font-weight: 800;                            /* Bem negrito */
+}
+#pratica-marcar { left: 3%; }                    /* Canto inferior esquerdo */
+#pratica-apagar { left: calc(3% + 9.5em); }      /* Ao lado do "Marcar" */
+.botao-pratica span { margin-left: .6em; font-size: .75em; opacity: .7; }
+.botao-pratica:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+
+
+/* ================================================================
+   FASE CONCLUÍDA (✓ na seleção e tela de conclusão)
+   ================================================================ */
+
+.level-btn {
+    position: relative;                          /* Referência pro ✓ no canto */
+}
+
+.level-btn.concluida {
+    box-shadow: 0 4px 0 #00000066, inset 0 0 0 2px #3bff7a; /* Contorno verde por dentro = concluída (a cor do herói continua) */
+}
+
+.level-btn.concluida::after {
+    content: '✓';                                /* Marca de concluída */
+    position: absolute;                          /* Fica no canto do botão */
+    top: -10px; right: -10px;                    /* Canto superior direito, um pouco pra fora */
+    width: 24px; height: 24px;                   /* Bolinha de 24 px */
+    display: grid; place-items: center;          /* Centraliza o ✓ */
+    border-radius: 50%;                          /* Redonda */
+    background: #3bff7a;                         /* Verde */
+    color: #0a1233;                              /* ✓ escuro */
+    font-size: 14px;                             /* Tamanho do ✓ */
+}
+
+#fase-concluida {
+    position: absolute;                          /* Fica por cima do jogo */
+    inset: 0;                                    /* Ocupa a área toda */
+    display: flex;                               /* Flex pra centralizar */
+    flex-direction: column;                      /* Um embaixo do outro */
+    justify-content: center;                     /* Centraliza na vertical */
+    align-items: center;                         /* Centraliza na horizontal */
+    gap: 1.4cqw;                                 /* Espaço entre os itens */
+    padding: 4%;                                 /* Espaço nas bordas */
+    background: #050816cc;                       /* Escurece o jogo atrás */
+    text-align: center;                          /* Texto centralizado */
+}
+
+#fase-concluida h2 {
+    margin: 0;                                   /* Sem margem padrão */
+    color: #3bff7a;                              /* Verde de vitória */
+    font-size: clamp(22px, 5cqw, 64px);          /* Título grande e proporcional */
+    letter-spacing: .12em;                       /* Letras espaçadas */
+    text-shadow: 0 4px 0 #060e2b;                /* Sombra sólida */
+}
+
+.fc-heroi {
+    margin: 0;                                   /* Sem margem padrão */
+    color: #eef5ff;                              /* Texto claro */
+    font-size: clamp(14px, 2cqw, 26px);          /* Tamanho proporcional */
+    font-weight: 800;                            /* Bem negrito */
+    letter-spacing: .2em;                        /* Espaçado */
+}
+
+.fc-dados {
+    display: flex;                               /* Os 3 dados lado a lado */
+    flex-wrap: wrap;                             /* Quebram linha em tela estreita */
+    justify-content: center;                     /* Centralizados */
+    gap: 3cqw;                                   /* Espaço entre eles */
+    margin: .5em 0;                              /* Espaço em cima e embaixo */
+}
+
+.fc-dados div {
+    display: flex;                               /* Nome em cima, valor embaixo */
+    flex-direction: column;                      /* Empilhados */
+    gap: .3em;                                   /* Espaço entre nome e valor */
+}
+
+.fc-dados dt {
+    color: #9fb4e0;                              /* Nome apagado */
+    font-size: clamp(10px, 1.1cqw, 15px);        /* Pequeno */
+    letter-spacing: .15em;                       /* Espaçado */
+    text-transform: uppercase;                   /* Maiúsculo */
+}
+
+.fc-dados dd {
+    margin: 0;                                   /* Sem recuo padrão do <dd> */
+    color: #ffffff;                              /* Valor branco */
+    font-size: clamp(16px, 2.6cqw, 34px);        /* Grande */
+    font-weight: 800;                            /* Bem negrito */
+    font-variant-numeric: tabular-nums;          /* Números alinhados */
+}
+
+.fc-botoes {
+    display: flex;                               /* Botões lado a lado */
+    flex-wrap: wrap;                             /* Quebram em tela estreita */
+    justify-content: center;                     /* Centralizados */
+    gap: 1.5cqw;                                 /* Espaço entre eles */
+}
+
+.fc-botoes button {
+    min-height: 44px;                            /* Altura boa pro dedo */
+    padding: .8em 1.6em;                         /* Espaço interno */
+    border: 2px solid #3657bc;                   /* Borda azul */
+    border-radius: 8px;                          /* Cantos arredondados */
+    background: #192a6b;                         /* Azul escuro */
+    color: #eef5ff;                              /* Texto claro */
+    font-size: clamp(12px, 1.5cqw, 20px);        /* Tamanho proporcional */
+    font-weight: bold;                           /* Negrito */
+    box-shadow: 0 4px 0 #0a1233;                 /* Sombra sólida */
+}
+
+#fc-proxima {
+    background: #b7f65b;                         /* Botão principal verde */
+    border-color: #e5ffb5;                       /* Borda verde clara */
+    color: #193d2a;                              /* Texto escuro */
+}
+
+.fc-botoes button span {
+    margin-left: .6em;                           /* Afasta o "ESC" */
+    font-size: .7em;                             /* Menor */
+    opacity: .7;                                 /* Apagado */
+}
+
+.fc-botoes button:focus-visible {
+    outline: 3px solid white;                    /* Contorno no foco do teclado */
+    outline-offset: 4px;                         /* Afastado */
+}
+
+/* ================================================================
+   ANIMAÇÕES
+   ================================================================ */
+
+@keyframes pulse {
+    50% {
+        transform: scale(1.09);                  /* No meio da animação o anel cresce */
+        opacity: .4;                             /* E fica mais transparente */
+    }
+}
+
+/* ================================================================
+   RESPONSIVO
+   ================================================================ */
+
+/* Aparelhos de toque (celular/tablet) */
+@media (pointer: coarse) {
+    .keyboard-hint {
+        display: none;                           /* Esconde "pressione Enter" (não tem teclado) */
+    }
+
+    #back-button span, #ability-button span {
+        display: none;                           /* Esconde o "ESC" e o "E" dos botões */
+    }
+}
+
+/* Celular deitado (tela larga mas baixinha) */
+@media (orientation: landscape) and (max-height: 500px) {
+    #menu {
+        padding: 2% 3%;                          /* Menos espaço nas bordas */
+    }
+
+    .tagline {
+        margin: 1.2cqw 0 1.6cqw;                 /* Menos espaço em volta da frase */
+    }
+
+    .play-label {
+        margin: 1cqw 0 .4cqw;                    /* Menos espaço em volta do "JOGAR" */
+    }
+}
+
+/* Celular em pé (tela estreita) */
+@media (max-width: 600px) and (orientation: portrait) {
+    #game-shell {
+        width: 100vw;                            /* Ocupa a largura toda */
+        aspect-ratio: 3 / 4;                     /* Formato mais alto pra caber o menu */
+    }
+
+    #menu {
+        padding: 7% 6%;                          /* Mais espaço nas bordas */
+    }
+
+    h1 {
+        font-size: 11cqw;                        /* Título maior pra aproveitar a largura */
+    }
+
+    .eyebrow {
+        margin-bottom: 5cqw;                     /* Mais espaço embaixo */
+        font-size: 10px;                         /* Tamanho fixo */
+    }
+
+    .tagline {
+        margin: 5cqw 0 8cqw;                     /* Mais espaço em volta */
+        font-size: 13px;                         /* Tamanho fixo legível */
+    }
+
+    #play-button {
+        width: 80px;                             /* Botão grande pro dedo */
+    }
+
+    .play-orbit {
+        padding: 10px;                           /* Anel mais afastado */
+    }
+
+    .play-icon {
+        border-top-width: 13px;                  /* Triângulo em px (cqw ficaria pequeno) */
+        border-bottom-width: 13px;               /* Idem */
+        border-left-width: 20px;                 /* Idem */
+    }
+
+    .play-label {
+        margin: 6cqw 0 3cqw;                     /* Mais espaço em volta */
+        font-size: 14px;                         /* Tamanho fixo legível */
+    }
+
+    .keyboard-hint {
+        font-size: 11px;                         /* Tamanho fixo */
+    }
+
+    .level-btn {
+        width: 44%;                              /* Dois cartões por linha no celular */
+        padding: 10px 8px;                       /* Espaço interno em px (cqw ficaria pequeno) */
+    }
+
+    .menu-header, .menu-footer {
+        font-size: 9px;                          /* Legível em tela pequena */
+        letter-spacing: .08em;                   /* Menos espaçado pra caber */
+    }
+}
+
+/* Acessibilidade: quem prefere menos movimento no sistema */
+@media (prefers-reduced-motion: reduce) {
+     *, *::before {
+        animation: none !important;              /* Desliga todas as animações CSS */
+        transition: none !important;             /* Desliga todas as transições */
+    }
+}
+
+/* ================================================================
+   VISUAL "JOGO DE RITMO" (inspirado na navegação clássica de jogos de plataforma
+   rítmicos: botões redondos e grossos, contorno escuro, cartão grande por fase).
+   Tudo desenhado com CSS próprio — nenhum asset de outro jogo.
+   ================================================================ */
+
+/* Título com letras grossas, amarelo-esverdeado e contorno escuro */
+#game-title {
+    -webkit-text-stroke: .045em #061026;         /* Contorno escuro nas letras */
+    paint-order: stroke fill;                    /* Contorno por baixo do preenchimento */
+}
+
+/* Linha com os três botões grandes do menu */
+.menu-botoes {
+    display: flex;                               /* Lado a lado */
+    align-items: center;                         /* Centralizados na vertical */
+    justify-content: center;                     /* Centralizados na horizontal */
+    gap: 4cqw;                                   /* Espaço entre eles */
+}
+
+/* Botões redondos laterais (Heróis / Como jogar) */
+.botao-redondo {
+    display: flex;                               /* Ícone em cima, texto embaixo */
+    flex-direction: column;                      /* Empilhados */
+    align-items: center;                         /* Centralizados */
+    justify-content: center;                     /* Centralizados */
+    gap: .3em;                                   /* Espaço entre ícone e texto */
+    width: clamp(64px, 9cqw, 130px);             /* Tamanho proporcional */
+    aspect-ratio: 1;                             /* Quadrado (vira círculo com o radius) */
+    border-radius: 50%;                          /* Redondo */
+    border: .35cqw solid #061026;                /* Contorno grosso escuro */
+    background: radial-gradient(circle at 50% 30%, #9cff4f, #3fae1b 70%); /* Verde com brilho em cima */
+    box-shadow: 0 .5cqw 0 #061026, inset 0 -.5cqw 0 #00000033; /* "Degrau" embaixo (botão de jogo) */
+    color: #ffffff;                              /* Texto branco */
+    font-size: clamp(8px, .95cqw, 13px);         /* Texto pequeno */
+    text-shadow: 0 2px 0 #061026;                /* Sombra no texto */
+    transition: transform .12s ease;             /* Animação ao apertar */
+}
+/* Hover/foco: cresce um pouco */
+.botao-redondo:hover, .botao-redondo:focus-visible { transform: scale(1.08); outline: none; }
+/* Clique: afunda */
+.botao-redondo:active { transform: translateY(.3cqw) scale(.97); }
+
+/* Ícone de cubo (Heróis) */
+.icone-cubo {
+    width: 34%; aspect-ratio: 1;                 /* Quadrado */
+    background: #ffd400;                         /* Amarelo */
+    border: 3px solid #061026;                   /* Contorno */
+    box-shadow: inset 0 0 0 4px #ff8a00;         /* Quadrado interno laranja */
+}
+/* Ícone de interrogação (Como jogar) */
+.icone-ajuda { font-size: 2.6em; font-weight: 900; line-height: 1; }
+
+/* Botão de som no canto superior direito */
+.botao-canto {
+    position: absolute; bottom: 12%; right: 3%;  /* Canto de baixo (não cobre o cabeçalho) */
+    padding: .5em 1em;                           /* Espaço interno */
+    border-radius: 999px;                        /* Pílula */
+    border: 2px solid #061026;                   /* Contorno */
+    background: #3ad1ff; color: #061026;         /* Azul com texto escuro */
+    font-weight: 900; font-size: clamp(9px, 1cqw, 14px); /* Texto forte */
+    box-shadow: 0 3px 0 #061026;                 /* Degrau */
+}
+/* Mudo: cinza */
+.botao-canto.mudo { background: #8892a6; }
+
+/* PAINÉIS (Heróis / Como jogar) */
+.painel {
+    position: absolute; inset: 7% 12%;           /* Caixa no meio da tela */
+    display: flex; flex-direction: column;       /* Empilhado */
+    align-items: center; justify-content: center; gap: 1.2cqw; /* Centralizado com espaço */
+    padding: 2.4cqw;                             /* Espaço interno */
+    background: #0b1640ee;                       /* Azul escuro quase opaco */
+    border: .35cqw solid #061026;                /* Contorno grosso */
+    border-radius: 2cqw;                         /* Cantos bem arredondados */
+    box-shadow: 0 .6cqw 0 #061026, inset 0 0 0 .25cqw #3ad1ff55; /* Degrau + borda interna */
+    overflow: auto;                              /* Rola se faltar espaço (celular) */
+}
+/* Título do painel */
+.painel h2 { margin: 0; color: #ffd400; font-size: clamp(18px, 3cqw, 40px); -webkit-text-stroke: .04em #061026; paint-order: stroke fill; }
+/* Botão de fechar */
+.painel-fechar, #pausa button {
+    padding: .6em 1.4em;                         /* Espaço interno */
+    border-radius: 999px;                        /* Pílula */
+    border: 2px solid #061026;                   /* Contorno */
+    background: #3fae1b; color: #fff;            /* Verde */
+    font-weight: 900;                            /* Forte */
+    box-shadow: 0 4px 0 #061026;                 /* Degrau */
+}
+.painel-fechar span, #pausa button span { opacity: .7; font-size: .8em; margin-left: .4em; } /* Tecla de atalho mais apagada */
+.painel-fechar:focus-visible, #pausa button:focus-visible { outline: 3px solid #ffd400; outline-offset: 3px; } /* Foco visível */
+
+/* Lista de heróis (grade de cartõezinhos) */
+.lista-herois { display: grid; grid-template-columns: repeat(auto-fit, minmax(14em, 1fr)); gap: 1cqw; width: 100%; }
+.heroi-item {
+    display: grid; grid-template-columns: auto 1fr; gap: .2em .8em; align-items: center; /* Cubo à esquerda, textos à direita */
+    padding: .8em; border-radius: 1cqw;          /* Espaço e cantos */
+    background: #ffffff0d; border: 2px solid var(--cor); /* Fundo leve e borda na cor do herói */
+    font-size: clamp(10px, 1.2cqw, 16px);        /* Texto proporcional */
+}
+.heroi-item b { color: var(--cor); }            /* Nome na cor do herói */
+.heroi-item span { grid-column: 2; color: #d7e2ff; font-size: .9em; } /* Habilidade embaixo do nome */
+.heroi-cubo { grid-row: span 2; width: 2.4em; aspect-ratio: 1; background: var(--cor); border: 3px solid #061026; box-shadow: inset 0 0 0 5px #ffffff55; } /* Cubo do herói */
+
+/* Lista "como jogar" com ícones desenhados em CSS */
+.lista-ajuda { list-style: none; margin: 0; padding: 0; display: grid; gap: .7cqw; font-size: clamp(10px, 1.3cqw, 18px); }
+.lista-ajuda li { display: flex; align-items: center; gap: .8em; }
+.lista-ajuda b { color: #ffd400; }
+.ic { width: 1.6em; height: 1.6em; flex: none; display: inline-block; } /* Base dos ícones */
+.ic-pulo { background: #b7f65b; border: 2px solid #061026; }                       /* Cubo */
+.ic-hab { background: radial-gradient(circle, #ffffff, #3ad1ff); border-radius: 50%; } /* Brilho */
+.ic-pad { height: .5em; align-self: end; background: #ffd400; border-radius: .4em .4em 0 0; } /* Pad */
+.ic-orbe { border-radius: 50%; border: 4px solid #ffd400; background: #ffd40044; } /* Orbe */
+.ic-grav { border-radius: 50%/30%; border: 3px solid #3ad1ff; }                   /* Portal */
+.ic-vel { border: 3px solid #3dff8a; }                                               /* Portal de velocidade */
+.ic-serra { border-radius: 50%; background: repeating-conic-gradient(#d9dde8 0 20deg, transparent 20deg 36deg); } /* Serra */
+.ic-cp { background: linear-gradient(90deg, #ffffff 0 3px, transparent 3px), linear-gradient(#3dff8a, #3dff8a) 3px 0 / 60% 55% no-repeat; } /* Bandeira */
+.ic-modo { border-radius: 50%; border: 4px solid #ff4d6d; box-shadow: inset 0 0 0 4px #c06bff; } /* Portais de modo (bola/UFO) */
+.ic-azul { border-radius: 50%; border: 4px solid #3ad1ff; background: #3ad1ff44; } /* Pad/orbe azul */
+.ic-pratica { width: 1.2em; height: 1.2em; margin: 0 .2em; transform: rotate(45deg); background: #3dff8a; border: 2px solid #ffffff; } /* Diamante */
+
+/* SELEÇÃO DE FASES EM CARROSSEL */
+.carrossel { display: flex; align-items: center; gap: 2cqw; width: 100%; justify-content: center; } /* Seta · cartão · seta */
+.carrossel .level-grid { max-width: none; }     /* O cartão decide a largura */
+/* Só o cartão ativo aparece */
+.level-select-oculto, #level-select .level-btn:not(.ativa) { display: none; }
+/* Cartão grande da fase */
+#level-select .level-btn {
+    width: min(62cqw, 760px);                    /* Bem largo */
+    min-height: 22cqw;                           /* Bem alto */
+    padding: 2cqw 2.6cqw;                        /* Espaço interno */
+    border: .4cqw solid #061026;                 /* Contorno grosso escuro */
+    border-radius: 2cqw;                         /* Cantos arredondados */
+    font-size: clamp(16px, 3.4cqw, 46px);        /* Nome grande */
+    -webkit-text-stroke: .03em #061026;          /* Contorno nas letras */
+    paint-order: stroke fill;                    /* Contorno por baixo */
+    box-shadow: 0 .7cqw 0 #061026, inset 0 0 0 .3cqw var(--brilho); /* Degrau + borda interna colorida */
+    justify-content: center;                     /* Conteúdo no meio */
+}
+#level-select .level-btn small { font-size: .38em; -webkit-text-stroke: 0; } /* Descrição */
+/* Bloco extra do cartão (dificuldade, barra, recordes) */
+.card-extra { display: grid; gap: .6cqw; width: 100%; font-size: .32em; -webkit-text-stroke: 0; text-transform: none; }
+.card-dif { display: inline-flex; align-items: center; gap: .5em; color: var(--dif); font-weight: 900; } /* Dificuldade */
+.card-dif em { font-style: normal; color: #ffd400; letter-spacing: .1em; } /* Estrelas */
+.dif-icone { width: 1.6em; aspect-ratio: 1; border-radius: 50%; background: var(--dif); border: 3px solid #061026; box-shadow: inset 0 -.3em 0 #00000040; } /* Ícone redondo da dificuldade */
+/* Barra de progresso do cartão (melhor % alcançado) */
+.card-barra { position: relative; display: block; height: 1.5em; border-radius: 999px; background: #061026aa; border: 2px solid #061026; overflow: hidden; }
+.card-barra i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#9cff4f, #3fae1b); } /* Preenchimento verde */
+.card-barra em { position: relative; display: block; text-align: center; font-style: normal; font-weight: 900; line-height: 1.5em; } /* % no meio */
+.card-stats { color: #ffffffcc; font-weight: normal; }  /* Recordes */
+/* Setas grandes */
+.seta {
+    width: clamp(40px, 6cqw, 84px); aspect-ratio: 1; /* Quadradas */
+    border-radius: 50%; border: .3cqw solid #061026; /* Redondas com contorno */
+    background: radial-gradient(circle at 50% 30%, #9cff4f, #3fae1b 70%); /* Verde */
+    color: #fff; font-size: clamp(16px, 2.6cqw, 36px); /* Seta grande */
+    box-shadow: 0 .45cqw 0 #061026;              /* Degrau */
+}
+.seta:hover, .seta:focus-visible { transform: scale(1.08); outline: none; } /* Cresce */
+/* Bolinhas indicando a fase */
+.pontos { display: flex; gap: .8cqw; margin-top: 1.6cqw; }
+.pontos i { width: clamp(8px, 1cqw, 14px); aspect-ratio: 1; border-radius: 50%; background: #ffffff44; cursor: pointer; }
+.pontos i.ativa { background: #ffd400; transform: scale(1.3); }
+.sel-dica { margin: 1cqw 0 0; color: #a9bde2; font-size: clamp(9px, 1.1cqw, 15px); }
+
+/* TELA DE PAUSA */
+#pausa {
+    position: absolute; inset: 0;                /* Cobre o jogo */
+    display: flex; flex-direction: column;       /* Empilhado */
+    align-items: center; justify-content: center; gap: 1.4cqw; /* Centralizado */
+    background: #050816cc;                       /* Escurece o jogo atrás */
+}
+#pausa h2 { margin: 0; color: #ffd400; font-size: clamp(22px, 5cqw, 64px); -webkit-text-stroke: .04em #061026; paint-order: stroke fill; }
+#pausa-info { margin: 0; color: #d7e2ff; font-weight: 700; font-size: clamp(11px, 1.5cqw, 20px); }
+.pausa-botoes { display: grid; grid-template-columns: repeat(2, minmax(10em, 1fr)); gap: 1cqw; font-size: clamp(11px, 1.5cqw, 20px); }
+#pausa-selecao { background: #3ad1ff; color: #061026; } /* Azul */
+#pausa-som { background: #8892a6; }                     /* Cinza */
+#pausa-pratica { grid-column: 1 / -1; background: #3dff8a; color: #061026; } /* Verde (diamante), linha inteira */
+
+/* Celular em pé: botões empilham */
+@media (max-width: 600px) {
+    .menu-botoes { gap: 2cqw; }                  /* Menos espaço */
+    .pausa-botoes { grid-template-columns: 1fr; } /* Uma coluna */
+    #level-select .level-btn { width: 70cqw; }   /* Cartão quase a tela toda */
+}
+
+
+/* ================================================================
+   RODADA 6 — INTERFACE NO ESTILO DOS JOGOS DE RITMO (veja REA_ESQUEMA.md)
+   Letras grossas, botões chanfrados com contorno escuro, pausa redonda e painéis "de jogo".
+   ================================================================ */
+:root {
+    --contorno: #061026;                         /* Contorno escuro de botões e letras */
+    --verde-claro: #b6ff5c;                      /* Verde do topo dos botões */
+    --verde-escuro: #3a9e16;                     /* Verde da base dos botões */
+    --ciano: #3fe0ff;                            /* Ciano do chanfro */
+    --fonte-titulo: 'Bungee', 'Arial Black', Impact, sans-serif; /* Fonte de letras grossas, com reserva */
+}
+/* Título: letras grossas, verde com contorno escuro e degraus de sombra (efeito 3D) */
+#game-title {
+    font-family: var(--fonte-titulo);
+    font-weight: 400;                            /* A fonte já é grossa */
+    letter-spacing: .01em;
+    transform: none;
+    color: var(--verde-claro);
+    -webkit-text-stroke: .06em var(--contorno);
+    text-shadow: 0 .05em 0 var(--verde-escuro), 0 .1em 0 var(--contorno), 0 .16em .12em #00000066;
+}
+#game-title span { color: var(--verde-claro); font-size: .78em; text-shadow: 0 .05em 0 var(--verde-escuro), 0 .1em 0 var(--contorno), 0 .16em .12em #00000066; }
+.tagline, .play-label { font-family: var(--fonte-titulo); letter-spacing: .08em; }
+.tagline { color: #d8e6ff; text-shadow: 0 2px 0 var(--contorno); }
+
+/* Botões laterais do menu: ladrilhos quadrados chanfrados (borda ciano, miolo verde) */
+.botao-redondo {
+    border-radius: 22%;
+    border: .4cqw solid var(--contorno);
+    background:
+        linear-gradient(var(--verde-claro), var(--verde-escuro)) padding-box;
+    box-shadow: inset 0 0 0 .55cqw var(--ciano), inset 0 .9cqw 0 #ffffff44, 0 .55cqw 0 var(--contorno);
+    font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .04em;
+}
+/* Botão JOGAR: maior, redondo, com contorno grosso e chanfro */
+#play-button {
+    width: clamp(70px, 10.5cqw, 150px);
+    border: .45cqw solid var(--contorno);
+    background: radial-gradient(circle at 50% 32%, #e8ff9a, var(--verde-claro) 45%, var(--verde-escuro));
+    box-shadow: inset 0 0 0 .6cqw var(--ciano), inset 0 1cqw 0 #ffffff55, 0 .6cqw 0 var(--contorno), 0 0 3cqw #b7f65b40;
+}
+.play-icon { border-left-color: #ffd400; filter: drop-shadow(0 .25cqw 0 var(--contorno)) drop-shadow(0 0 1px var(--contorno)); }
+/* Botão de som: redondo com contorno grosso */
+.botao-canto { border: .3cqw solid var(--contorno); box-shadow: 0 .35cqw 0 var(--contorno), inset 0 .5cqw 0 #ffffff55; font-family: var(--fonte-titulo); font-weight: 400; }
+
+/* Pausa durante a partida: botão redondo verde */
+#back-button.botao-pausa {
+    width: clamp(40px, 4.4cqw, 64px); aspect-ratio: 1; min-height: 0; padding: 0;
+    display: grid; place-items: center;
+    border-radius: 50%; border: .3cqw solid var(--contorno);
+    background: radial-gradient(circle at 50% 30%, var(--verde-claro), var(--verde-escuro) 75%);
+    box-shadow: inset 0 0 0 .3cqw #ffffff55, 0 .3cqw 0 var(--contorno);
+    color: #ffffff; text-shadow: 0 2px 0 var(--contorno);
+}
+.pausa-icone { font-size: clamp(12px, 1.5cqw, 22px); letter-spacing: -.12em; font-weight: 900; }
+
+/* Tela de pausa: painel escuro com contorno grosso */
+#pausa h2, #fc-titulo { font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .04em; }
+#pausa .pausa-botoes { padding: 1.6cqw; border-radius: 1.6cqw; border: .35cqw solid var(--contorno); background: #0b1440e6; box-shadow: inset 0 0 0 .25cqw #ffffff22, 0 .5cqw 0 var(--contorno); }
+#pausa button { font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .03em; }
+
+/* Seleção de fases: título e nome da fase em letras grossas; barras de modo normal e prática */
+.level-heading { font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .08em; -webkit-text-stroke: .04em var(--contorno); paint-order: stroke fill; }
+#level-select .level-btn { font-family: var(--fonte-titulo); font-weight: 400; }
+#level-select .level-btn small, .card-extra { font-family: Arial, Helvetica, sans-serif; }
+.card-modo { font-weight: 900; font-size: .85em; letter-spacing: .08em; text-transform: uppercase; margin-bottom: -.3cqw; }
+.card-barra.pratica i { background: linear-gradient(#7dfcff, #1fa6d6); } /* Prática em ciano */
+.seta { border-radius: 22%; box-shadow: inset 0 0 0 .35cqw var(--ciano), 0 .45cqw 0 var(--contorno); }
+
+/* ================================================================
+   RODADA 8 — TELA INICIAL "GEOMETRY HEROES"
+   Título em duas cores, elenco dos heróis em volta (imagens em assets/herois),
+   cartões da seleção com o retrato do herói. Fundo sem grade (desenhado no cenas.js).
+   ================================================================ */
+:root {
+    --amarelo: #ffd400;                          /* Amarelo de destaque (HEROES, estrelas) */
+    --laranja: #ff8a00;                          /* Degrau do amarelo */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);  /* Curva de entrada forte (UI) */
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); /* Curva para movimento contínuo na tela */
+    --chao: 8.2%;                                /* Altura do chão desenhado no Phaser (59 de 720 px) */
+}
+
+#menu { background: none; padding: 2.4% 3%; }  /* O brilho agora vem do fundo do Phaser */
+
+/* Cabeçalho e rodapé: textos pequenos, mas com contraste AA sobre o azul */
+.menu-header, .menu-footer { position: relative; z-index: 2; color: #d4e0ff; }
+.selo {
+    display: inline-flex; align-items: center; gap: .7em;
+    padding: .45em .9em; border-radius: 999px;
+    background: #061026b3; border: 2px solid #ffffff2e;
+    font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .12em;
+}
+.brand-mark { width: .9em; aspect-ratio: 1; background: var(--verde-claro); border: 2px solid var(--contorno); transform: rotate(45deg); }
+.menu-footer { justify-content: center; font-size: clamp(9px, .85cqw, 12px); }
+.menu-footer span { padding: .3em .8em; border-radius: 999px; background: #061026b3; }
+
+/* Conteúdo central acima do elenco */
+.menu-content { position: relative; z-index: 2; gap: 0; }
+
+/* TÍTULO: "GEOMETRY" branco por cima, "HEROES" amarelo e maior embaixo, ambos com contorno e degraus 3D */
+#game-title {
+    display: flex; flex-direction: column; align-items: center;
+    font-size: clamp(26px, 5.4cqw, 86px); line-height: .92;
+    letter-spacing: .02em;
+}
+#game-title .t1 {
+    display: block; font-size: .78em; color: #ffffff;
+    text-shadow: 0 .06em 0 #5b8cff, 0 .12em 0 var(--contorno), 0 .2em .16em #00000066;
+}
+#game-title .t2 {
+    display: block; font-size: 1.12em; color: var(--amarelo);
+    text-shadow: 0 .05em 0 var(--laranja), 0 .1em 0 var(--contorno), 0 .18em .14em #00000080;
+}
+.tagline {
+    margin: 1.4cqw 0 2cqw; padding: .35em 1.1em;
+    font-size: clamp(11px, 1.35cqw, 19px); color: #ffffff;
+    background: #061026b3; border-radius: 999px;   /* Faixa escura: contraste garantido sobre qualquer cor do fundo */
+    text-shadow: none;
+}
+.play-label { margin: 1.2cqw 0 .4cqw; color: #ffffff; text-shadow: 0 2px 0 var(--contorno); }
+.keyboard-hint { color: #d4e0ff; }
+.keyboard-hint kbd { border-color: #d4e0ff88; background: #06102680; }
+
+/* Botões: hover só com mouse; aperto vale em toque também */
+.botao-redondo:hover { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+    .botao-redondo:hover { transform: translateY(-.25cqw) scale(1.05); }
+}
+.botao-redondo { transition: transform 160ms var(--ease-out); }
+.botao-redondo:active { transform: translateY(.3cqw) scale(.97); }
+/* Foco por teclado: anel amarelo bem visível (antes só crescia) */
+.botao-redondo:focus-visible, .botao-canto:focus-visible, .seta:focus-visible {
+    outline: .3cqw solid var(--amarelo); outline-offset: .35cqw;
+}
+#play-button:focus-visible { outline: .3cqw solid var(--amarelo); outline-offset: .5cqw; }
+/* Ícones dos botões laterais em amarelo (casam com "HEROES") */
+.icone-cubo { background: var(--amarelo); box-shadow: inset 0 0 0 4px var(--laranja); }
+
+/* Botão de som: canto inferior direito, acima do chão */
+.botao-canto { z-index: 3; bottom: calc(var(--chao) + 2.4%); right: 2.4%; min-height: 32px; letter-spacing: .04em; }
+.botao-canto.mudo { background: #c5cbd8; }      /* Cinza claro: texto escuro continua legível */
+
+/* ELENCO: retratos posicionados em % da área do jogo (acompanham o tamanho do jogo) */
+.elenco { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.heroi-arte {
+    position: absolute; display: block; height: auto;
+    filter: drop-shadow(0 .5cqw 0 #06102699) drop-shadow(0 0 1.2cqw #00000055);
+}
+/* Entrada (só quando a cena do menu começa: abrir o jogo ou voltar de uma fase — não ao fechar painéis) */
+#menu.entrada .heroi-arte { animation: heroi-entra 420ms var(--ease-out) both; }
+/* Voando / pendurados (parte de cima) */
+.h-estranho { left: .5%; top: 9%; width: 23%; }
+.h-aranha   { right: 2%; top: 0; height: 47%; width: auto; }
+/* Em pé no chão (parte de baixo) */
+.h-ferro    { left: 3%; bottom: var(--chao); height: 52%; width: auto; z-index: 1; }
+.h-gaviao   { left: 13.5%; bottom: var(--chao); height: 47%; width: auto; }
+.h-hulk     { right: 1.5%; bottom: var(--chao); height: 46%; width: auto; z-index: 1; }
+/* Wanda: ilustração com fundo próprio → medalhão redondo com aro vermelho (a aura dela) */
+.h-wanda {
+    right: 13%; top: 14%; width: 16.5%; aspect-ratio: 1;
+    border-radius: 50%; overflow: hidden;
+    border: .45cqw solid var(--contorno);
+    box-shadow: 0 0 0 .35cqw #ff2a4d, 0 0 2.4cqw #ff2a4d99, 0 .6cqw 0 .35cqw var(--contorno);
+    filter: none;
+}
+.h-wanda img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; transform: scale(1.12); transform-origin: 50% 30%; }
+
+/* Atraso de cada herói na entrada (um depois do outro, 30–150 ms) */
+#menu.entrada .h-ferro { animation-delay: 0ms; }
+#menu.entrada .h-hulk { animation-delay: 30ms; }
+#menu.entrada .h-estranho { animation-delay: 60ms; }
+#menu.entrada .h-gaviao { animation-delay: 90ms; }
+#menu.entrada .h-aranha { animation-delay: 120ms; }
+#menu.entrada .h-wanda { animation-delay: 150ms; }
+/* Heróis que voam flutuam de leve depois da entrada (movimento contínuo e lento) */
+.h-estranho, .h-wanda { animation: flutua 4.8s var(--ease-in-out) infinite alternate; }
+
+@keyframes heroi-entra { from { opacity: 0; transform: translateY(1.2cqw); } }
+@keyframes flutua { to { transform: translateY(-.8cqw); } }
+/* Título e botões entram juntos, um pouco depois do fundo */
+#menu.entrada .menu-content > * { animation: conteudo-entra 320ms var(--ease-out) both; }
+#menu.entrada .menu-content > .tagline { }
+#menu.entrada .menu-content > .menu-botoes { }
+#menu.entrada .menu-content > .play-label, #menu.entrada .menu-content > .keyboard-hint { }
+@keyframes conteudo-entra { from { opacity: 0; transform: translateY(.6cqw); } }
+
+/* Jogo baixinho (celular deitado): título e botões um pouco menores pra caber entre os heróis */
+@media (max-height: 420px) and (orientation: landscape) {
+    #game-title { font-size: 5cqw; }
+    .tagline { margin: 1cqw 0 1.4cqw; }
+}
+/* Celular em pé: o jogo fica 3:4 e o chão do Phaser não bate; mostra só dois heróis embaixo */
+@media (max-width: 600px) and (orientation: portrait) {
+    #game-title { font-size: 11cqw; }
+    .h-estranho, .h-aranha, .h-wanda, .h-gaviao { display: none; }
+    .h-ferro { height: 30%; bottom: 0; left: 2%; }
+    .h-hulk { height: 26%; bottom: 0; right: 2%; }
+}
+
+/* SELEÇÃO DE FASES: retrato do herói no lado direito do cartão (saindo um pouco por cima) */
+#level-select .level-btn { padding-right: 30%; overflow: visible; }
+#level-select .level-btn::before {
+    content: ''; position: absolute; right: 2%; bottom: 0; width: 27%; height: 118%;
+    background: var(--retrato) no-repeat 50% 100% / contain;
+    filter: drop-shadow(0 .4cqw 0 #06102699);
+    pointer-events: none;
+}
+.level-btn[data-level="Homem-Aranha"]   { --retrato: url("assets/herois/homem-aranha.webp"); }
+.level-btn[data-level="Homem de Ferro"] { --retrato: url("assets/herois/homem-de-ferro.webp"); }
+.level-btn[data-level="Hulk"]           { --retrato: url("assets/herois/hulk.webp"); }
+.level-btn[data-level="Gaviao"]         { --retrato: url("assets/herois/gaviao-arqueiro.webp"); }
+.level-btn[data-level="DrEstranho"]     { --retrato: url("assets/herois/doutor-estranho.webp"); }
+/* Wanda: medalhão redondo (a imagem tem fundo próprio) */
+#level-select .level-btn[data-level="Wanda"]::before {   /* (antigo medalhão; anulado pelo estilo HQ no fim do arquivo) */
+    --retrato: url("assets/herois/wanda.webp");
+    top: 50%; bottom: auto; height: auto; width: 24%; aspect-ratio: 1; right: 3%;
+    transform: translateY(-50%);
+    background-size: cover; background-position: 50% 15%;
+    border-radius: 50%; border: .35cqw solid var(--contorno);
+    box-shadow: 0 0 0 .3cqw #ff2a4d, 0 0 2cqw #ff2a4d88;
+    filter: none;
+}
+/* A seleção também usa o novo título em amarelo */
+.level-heading { color: var(--amarelo); text-shadow: 0 .06em 0 var(--laranja), 0 .12em 0 var(--contorno); }
+.sel-dica { color: #d4e0ff; }
+
+/* PAINEL "HERÓIS": retrato pequeno no lugar do cubo (a imagem vem do CSS: --retrato do herói) */
+.heroi-foto {
+    grid-row: span 2; width: 3.4em; aspect-ratio: 1;
+    border-radius: .6em; border: 3px solid var(--contorno);
+    background: var(--retrato) no-repeat 50% 0 / 100% auto, radial-gradient(circle at 50% 30%, #ffffff40, transparent 70%), var(--cor);
+}
+.heroi-foto[data-heroi="Homem-Aranha"]   { --retrato: url("assets/herois/homem-aranha.webp"); background-size: 190% auto; background-position: 60% 28%; }
+.heroi-foto[data-heroi="Homem de Ferro"] { --retrato: url("assets/herois/homem-de-ferro.webp"); background-size: 140% auto; background-position: 50% 0; }
+.heroi-foto[data-heroi="Hulk"]           { --retrato: url("assets/herois/hulk.webp"); background-size: 150% auto; background-position: 55% 0; }
+.heroi-foto[data-heroi="Gaviao"]         { --retrato: url("assets/herois/gaviao-arqueiro.webp"); background-size: 190% auto; background-position: 45% 0; }
+.heroi-foto[data-heroi="DrEstranho"]     { --retrato: url("assets/herois/doutor-estranho.webp"); background-size: 300% auto; background-position: 35% 2%; }
+.heroi-foto[data-heroi="Wanda"]          { --retrato: url("assets/herois/wanda.webp"); background-size: 140% auto; background-position: 50% 12%; }
+.painel h2 { font-family: var(--fonte-titulo); font-weight: 400; letter-spacing: .06em; } /* Mesma fonte do título */
+/* Doutor Estranho (imagem larga): retrato um pouco maior no cartão */
+/* (Doutor Estranho usava 33%: agora todos os retratos têm 36%, ver estilo HQ) */
+/* Contraste: rótulos brancos dos botões verdes ganham contorno escuro (como as letras do título) */
+.botao-redondo b { -webkit-text-stroke: .22em var(--contorno); paint-order: stroke fill; }
+.painel-fechar { background: #2a7a10; }         /* Verde mais escuro: texto branco com contraste AA */
+
+/* =====================================================================
+   ESTILO HQ (tela inicial e seleção de fases) — painéis de quadrinhos,
+   título vermelho e branco, retícula de pontos e contornos pretos grossos
+   ===================================================================== */
+:root {
+    --hq-vermelho: #e3161f; --hq-vermelho-esc: #9c0b12; --hq-tinta: #0a0a12;
+    --hq-papel: #fff6e0; --hq-fundo: #111a3a; --hq-amarelo: #ffd400;
+}
+
+/* Fundo: azul-noite de HQ com retícula de pontos e raios de ação vermelhos */
+#menu, #level-select {
+    background:
+        radial-gradient(circle at 50% 42%, #e3161f33 0, transparent 46%),
+        radial-gradient(#ffffff14 1.1px, transparent 1.3px) 0 0 / 1.1cqw 1.1cqw,
+        repeating-conic-gradient(from 0deg at 50% 42%, #e3161f14 0deg 6deg, transparent 6deg 18deg),
+        linear-gradient(160deg, #1a2452 0%, var(--hq-fundo) 55%, #070b1e 100%);
+}
+
+/* Página de HQ: 3 painéis de cada lado, inclinados, com sarjeta branca e contorno preto */
+.elenco { display: none; }
+.hq-pagina { position: absolute; inset: 0; pointer-events: none; }
+.hq-col { position: absolute; top: 3%; bottom: 3%; width: 24%; display: grid; grid-template-rows: 1.15fr 1fr 1.15fr; gap: 1.2cqw; }
+.hq-esq { left: 1.6%; } .hq-dir { right: 1.6%; }
+.hq-painel {
+    margin: 0; position: relative; overflow: hidden; background: var(--hq-tinta);
+    border: .45cqw solid var(--hq-tinta); outline: .35cqw solid var(--hq-papel);
+    box-shadow: .7cqw .7cqw 0 var(--hq-tinta);
+    animation: hq-entra 520ms var(--ease-out) both;
+}
+.hq-esq .hq-painel { transform: rotate(-2deg); } .hq-dir .hq-painel { transform: rotate(2deg); }
+.hq-esq .hq-painel:nth-child(2) { transform: rotate(1.5deg) translateX(6%); }
+.hq-dir .hq-painel:nth-child(2) { transform: rotate(-1.5deg) translateX(-6%); }
+.hq-painel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.p-aranha img { object-position: 50% 22%; } .p-gaviao img { object-position: 45% 20%; }
+.p-ferro img { object-position: 50% 18%; } .p-hulk img { object-position: 50% 12%; }
+.p-estranho img { object-position: 50% 20%; } .p-wanda img { object-position: 50% 10%; }
+.hq-painel:nth-child(1) { animation-delay: 60ms; } .hq-painel:nth-child(2) { animation-delay: 140ms; } .hq-painel:nth-child(3) { animation-delay: 220ms; }
+@keyframes hq-entra { from { opacity: 0; translate: 0 6%; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .hq-painel { animation: none; } }
+
+/* Título: GEOMETRY branco num letreiro vermelho inclinado; HEROES branco com contorno preto e sombra vermelha */
+#game-title { display: flex; flex-direction: column; align-items: center; gap: .4cqw; line-height: .95; }
+#game-title .t1 {
+    display: inline-block; padding: .25em .7em .2em; color: #fff; font-size: .62em;
+    background: var(--hq-vermelho); border: .35cqw solid var(--hq-tinta);
+    transform: skewX(-10deg) rotate(-2deg); box-shadow: .5cqw .5cqw 0 var(--hq-tinta);
+    text-shadow: none; -webkit-text-stroke: 0; letter-spacing: .08em;
+}
+#game-title .t2 {
+    color: #fff; font-size: 1.12em; letter-spacing: .02em;
+    -webkit-text-stroke: .18cqw var(--hq-tinta);
+    text-shadow: .045em .045em 0 var(--hq-vermelho), .09em .09em 0 var(--hq-tinta);
+    transform: rotate(-2deg);
+}
+.tagline {
+    display: inline-block; background: var(--hq-amarelo); color: var(--hq-tinta);
+    border: .25cqw solid var(--hq-tinta); padding: .35em .9em; transform: rotate(-1deg);
+    box-shadow: .35cqw .35cqw 0 var(--hq-tinta); text-shadow: none; font-weight: 900;
+}
+
+/* Botões no estilo HQ: cor chapada, contorno preto e sombra deslocada; afunda ao apertar */
+.botao-redondo, #play-button, .botao-canto, #level-select .seta, .menu-voltar {
+    border: .35cqw solid var(--hq-tinta) !important; box-shadow: .45cqw .45cqw 0 var(--hq-tinta) !important;
+    transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+.botao-redondo { background: #fff !important; color: var(--hq-tinta) !important; }
+.botao-redondo b { color: var(--hq-tinta); text-shadow: none; -webkit-text-stroke: 0; }
+#play-button { background: radial-gradient(circle at 40% 35%, #ff5a4a, var(--hq-vermelho) 60%, var(--hq-vermelho-esc)) !important; }
+.botao-redondo:active, #play-button:active, .botao-canto:active, #level-select .seta:active {
+    transform: translate(.3cqw, .3cqw) scale(.98); box-shadow: .15cqw .15cqw 0 var(--hq-tinta) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+    .botao-redondo:hover, #level-select .seta:hover { transform: translate(-.15cqw, -.15cqw); box-shadow: .6cqw .6cqw 0 var(--hq-tinta) !important; }
+}
+.play-label { color: #fff; text-shadow: .12em .12em 0 var(--hq-vermelho), .2em .2em 0 var(--hq-tinta); }
+.menu-header .selo, .menu-footer span { background: var(--hq-tinta); color: #fff; border: .2cqw solid #fff; }
+
+/* SELEÇÃO: cada cartão é um painel de HQ nas cores do herói, com a arte nova à direita */
+.level-heading { color: #fff !important; -webkit-text-stroke: .15cqw var(--hq-tinta); text-shadow: .08em .08em 0 var(--hq-vermelho), .14em .14em 0 var(--hq-tinta) !important; }
+#level-select .level-btn {
+    border: .5cqw solid var(--hq-tinta) !important; outline: .4cqw solid var(--hq-papel); border-radius: .6cqw !important;
+    box-shadow: 1cqw 1cqw 0 var(--hq-tinta) !important;
+    background:
+        radial-gradient(#ffffff22 1.2px, transparent 1.4px) 0 0 / .9cqw .9cqw,
+        linear-gradient(115deg, var(--c1) 0 58%, var(--c2) 58% 100%) !important;
+    padding-right: 36% !important; overflow: hidden !important;
+}
+#level-select .level-btn::before {
+    content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 36%; height: auto; left: auto;
+    background: var(--retrato-hq) no-repeat var(--foco, 50% 18%) / cover !important;
+    clip-path: polygon(14% 0, 100% 0, 100% 100%, 0 100%);
+    border: none !important; border-radius: 0 !important; box-shadow: none !important; transform: none !important; filter: none !important;
+}
+#level-select .level-btn::after {   /* faixa preta na diagonal (sarjeta entre o texto e a arte) */
+    content: ''; position: absolute; top: 0; bottom: 0; right: 36%; width: .9cqw; background: var(--hq-tinta);
+    transform: skewX(-8deg); transform-origin: bottom; pointer-events: none;
+}
+#level-select .level-btn small {   /* caixa de narração amarela */
+    display: inline-block; background: var(--hq-amarelo); color: var(--hq-tinta); border: .2cqw solid var(--hq-tinta);
+    padding: .3em .6em; margin: .4em 0 .6em; text-shadow: none; font-weight: 700;
+}
+.level-btn[data-level="Homem-Aranha"]   { --retrato-hq: url("assets/herois/hq/homem-aranha.webp");    --foco: 50% 20%; }
+.level-btn[data-level="Hulk"]           { --retrato-hq: url("assets/herois/hq/hulk.webp");            --foco: 50% 12%; }
+.level-btn[data-level="Gaviao"]         { --retrato-hq: url("assets/herois/hq/gaviao-arqueiro.webp"); --foco: 50% 18%; }
+.level-btn[data-level="Homem de Ferro"] { --retrato-hq: url("assets/herois/hq/homem-de-ferro.webp");  --foco: 50% 15%; }
+.level-btn[data-level="DrEstranho"]     { --retrato-hq: url("assets/herois/hq/doutor-estranho.webp"); --foco: 50% 22%; }
+.level-btn[data-level="Wanda"]          { --retrato-hq: url("assets/herois/hq/wanda.webp");           --foco: 50% 10%; }
+.level-btn.concluida::after { content: none; }
+
+/* Progresso: rótulo à esquerda e % à direita na mesma linha, barra embaixo (nada sobre a barra) */
+.card-progresso { display: grid; grid-template-columns: 1fr auto; align-items: end; row-gap: .3em; }
+.card-progresso .card-modo { margin: 0; color: #fff; }
+.card-pct { font-style: normal; font-weight: 900; color: #fff; font-size: 1.05em; text-shadow: .08em .08em 0 var(--hq-tinta); }
+.card-progresso .card-barra { grid-column: 1 / -1; height: .9em; border: .18cqw solid var(--hq-tinta); background: #ffffff33; }
+.card-barra em { display: none; }
+
+/* Telas estreitas (celular em pé): só os painéis do meio de cada lado, menores */
+@media (max-aspect-ratio: 1/1) {
+    .hq-col { width: 30%; grid-template-rows: 1fr; top: auto; height: 34%; bottom: 2%; }
+    .hq-painel:not(:nth-child(2)) { display: none; }
+}
+#level-select .level-btn[data-level="Wanda"]::before { top: 0; bottom: 0; width: 36%; height: auto; aspect-ratio: auto; right: 0; }
+#level-select .seta { background: var(--hq-vermelho) !important; color: #fff !important; }
+.menu-voltar { background: #fff !important; color: var(--hq-tinta) !important; }
+
+/* Cartões padronizados: todos com a MESMA altura (antes os nomes longos — Feiticeira Escarlate,
+   Doutor Estranho — quebravam em 2 linhas e o cartão crescia ~20%). Conteúdo centralizado na
+   vertical; nome com no máximo 2 linhas e entrelinha curta. */
+#level-select .level-btn { height: 28cqw; justify-content: center; box-sizing: border-box; }
+#level-select .level-btn > .card-titulo,
+#level-select .level-btn { line-height: 1.05; }
+#level-select .level-btn small { line-height: 1.25; }
+
+/* Botão de pausa durante a fase, no estilo HQ do menu: círculo vermelho com contorno preto grosso,
+   sombra deslocada e as duas barras de pausa desenhadas em CSS (antes o "❚❚" herdava a regra antiga
+   de #back-button span — pequeno, apagado e deslocado — e o botão parecia só uma bola verde). */
+#back-button.botao-pausa {
+    background: var(--hq-vermelho); border: .32cqw solid var(--hq-tinta);
+    box-shadow: .35cqw .35cqw 0 var(--hq-tinta), inset 0 .35cqw 0 #ffffff40;
+}
+#back-button.botao-pausa:hover { background: #ff2a33; transform: translateY(-1px); }
+#back-button.botao-pausa .pausa-icone {
+    margin: 0; width: 38%; height: 42%; font-size: 0; color: transparent; display: block;
+    background: linear-gradient(90deg, #fff 0 34%, transparent 34% 66%, #fff 66% 100%);
+    filter: drop-shadow(0 .15cqw 0 var(--hq-tinta));
+}
