@@ -1,0 +1,4 @@
+https://github.com/leonardoencinas/traco-geometrico/tree/geometry-heroes-final/Geometry-Heroes
+
+Baixar o zip e extrair, ir até a pasta traco-geometrico-geometry-heroes-final\Geometry-Heroes
+E abrir o index.html
